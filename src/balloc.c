@@ -1,12 +1,14 @@
 #include "balloc.h"
 #include <assert.h>
+#include <unistd.h>
 
 void balloc_init(alloc* b) {
-  b->mem = malloc(8 * 256);
+  const size_t pagesize = getpagesize();
+  b->mem = malloc(pagesize);
   assert(b->mem != NULL && "buy more RAM lol");
-  b->size = 8 * 256;
+  b->size = pagesize;
   ((header*)b->mem)->idx = 0;
-  ((header*)b->mem)->size = 255;
+  ((header*)b->mem)->size = pagesize / 8 - 1;
 }
 
 void balloc_deinit(alloc b) {
@@ -27,6 +29,7 @@ void* balloc(alloc* b, size_t size) {
   void* r = NULL;
   size_t i = 0;
 
+  loop:
   do {
     header* cur = (header*) (b->mem) + i;
 
@@ -43,7 +46,22 @@ void* balloc(alloc* b, size_t size) {
     }
 
     i = cur->idx;
-  } while(i != 0);
+  } while(i);
+
+  if(r == NULL) {
+    void* tmp = realloc(b->mem, b->size * 2);
+    if(tmp == NULL) return r;
+
+    b->mem = tmp;
+    b->size *= 2;
+
+    header* cur = (header*) (b->mem) + 1;
+    while(cur->idx) cur = (header*) (b->mem) + cur->idx;
+
+    cur->size = b->size - (size_t) (cur - (header*) (b->mem) + 1);
+
+    goto loop;
+  }
 
   return r;
 }
