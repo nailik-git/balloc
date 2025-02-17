@@ -3,7 +3,7 @@
 
 int main() {
   alloc b = {0};
-  balloc_init(&b);
+  balloc_init(&b, 0);
 
   char* p = balloc(&b, sizeof(char) * 12);
   sprintf(p, "hello world");

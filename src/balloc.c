@@ -2,13 +2,16 @@
 #include <assert.h>
 #include <unistd.h>
 
-void balloc_init(alloc* b) {
+void balloc_init(alloc* b, size_t size) {
   const size_t pagesize = getpagesize();
-  b->mem = malloc(pagesize);
+  const size_t mod = size % pagesize;
+  const size_t asize = size + (mod ? pagesize - mod : size ? 0 : pagesize);
+
+  b->mem = malloc(asize);
   assert(b->mem != NULL && "buy more RAM lol");
-  b->size = pagesize;
+  b->size = asize;
   ((header*)b->mem)->idx = 0;
-  ((header*)b->mem)->size = pagesize / 8 - 1;
+  ((header*)b->mem)->size = asize / 8 - 1;
 }
 
 void balloc_deinit(alloc b) {
@@ -26,12 +29,15 @@ void* balloc(alloc* b, size_t size) {
   const size_t new_size = size + (mod8 ? 8 - mod8 : 0);
   const size_t div8 = new_size / 8;
 
+  const size_t pagesize = getpagesize();
+
   void* r = NULL;
   size_t i = 0;
+  header* cur;
 
   loop:
   do {
-    header* cur = (header*) (b->mem) + i;
+    cur = (header*) (b->mem) + i;
 
     if(cur->size > div8) {
       r = cur + 1;
@@ -49,16 +55,16 @@ void* balloc(alloc* b, size_t size) {
   } while(i);
 
   if(r == NULL) {
-    void* tmp = realloc(b->mem, b->size * 2);
-    if(tmp == NULL) return r;
+    cur->size += pagesize;
+
+    void* tmp = realloc(b->mem, b->size + pagesize);
+    if(tmp == NULL) {
+      cur->size -= pagesize;
+      return r;
+    }
 
     b->mem = tmp;
-    b->size *= 2;
-
-    header* cur = (header*) (b->mem) + 1;
-    while(cur->idx) cur = (header*) (b->mem) + cur->idx;
-
-    cur->size = b->size - (size_t) (cur - (header*) (b->mem) + 1);
+    b->size += pagesize;
 
     goto loop;
   }

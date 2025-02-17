@@ -14,7 +14,7 @@ typedef struct {
   uint32_t size;
 } header;
 
-void balloc_init(alloc* b);
+void balloc_init(alloc* b, size_t size);
 void balloc_deinit(alloc b);
 
 void breset(alloc* b);
