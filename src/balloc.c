@@ -8,7 +8,7 @@ void balloc_init(alloc* b, size_t size) {
 
   const size_t pagesize = getpagesize();
   const size_t asize = (size + pagesize - 1) & ~(pagesize - 1);
-  void* p = (void*) 0x10000000000;
+  void* p = (void*) 0x100000000;
 
   loop:
   b->mem = mmap(
