@@ -45,8 +45,8 @@ void* balloc(alloc* b, size_t size) {
       *new = (header) {.idx = cur->idx, .size = cur->size - 1 - div8};
       *cur = (header) {.idx = i + 1 + div8, .size = 0};
       break;
-    } else if(cur->size == size) {
-      r = (header*) (b->mem) + 1;
+    } else if(cur->size == div8 && cur->idx) {
+      r = cur + 1;
       cur->size = 0;
       break;
     }
