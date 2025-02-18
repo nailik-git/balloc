@@ -1,14 +1,16 @@
 #include "balloc.h"
 #include <stdio.h>
+#include <string.h>
 
 int main() {
+  printf("[INFO] testing general functionality: ");
   alloc b = {0};
   balloc_init(&b, 0);
 
   char* p = balloc(&b, sizeof(char) * 12);
   sprintf(p, "hello world");
 
-  printf("%s\n", p);
+  if(strcmp(p, "hello world") != 0) return 1;
 
   int* a = balloc(&b, sizeof(int) * 128);
 
@@ -22,16 +24,15 @@ int main() {
   }
   bfree(b, a);
 
-  printf("%d\n", sum);
+  if(sum != 8128) return 1;
 
-  char* tmp = p;
   bfree(b, p);
 
   char* q = balloc(&b, sizeof(char) * 12);
-  sprintf(q, "hello world");
+  sprintf(q, "Hello World");
 
-
-  if(tmp == q) printf("%s\n", tmp);
+  // pointers aren't invalidated so don't do stupid shit
+  if(p == q && strcmp(p, "Hello World") != 0) return 1;
 
   bfree(b, q);
 
