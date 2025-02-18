@@ -1,7 +1,6 @@
 #include "balloc.h"
 #include <assert.h>
 #include <unistd.h>
-#define _GNU_SOURCE
 #include <sys/mman.h>
 
 void balloc_init(alloc* b, size_t size) {
@@ -9,16 +8,23 @@ void balloc_init(alloc* b, size_t size) {
 
   const size_t pagesize = getpagesize();
   const size_t asize = (size + pagesize - 1) & ~(pagesize - 1);
+  void* p = (void*) 0x10000000000;
 
+  loop:
   b->mem = mmap(
-    (void*) 0x100000000000,
+    p,
     asize,
     PROT_READ | PROT_WRITE,
-    MAP_PRIVATE | MAP_ANONYMOUS,
+    MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED_NOREPLACE,
     -1,
     0
   );
-  assert(b->mem != MAP_FAILED && "buy more RAM lol");
+
+  if(b->mem == MAP_FAILED) {
+    p = (void*) ((uint64_t) (p) << 1);
+    goto loop;
+  }
+
   b->size = asize;
   ((header*)b->mem)->idx = 0;
   ((header*)b->mem)->size = asize / 8 - 1;
@@ -68,7 +74,7 @@ void* balloc(alloc* b, size_t size) {
       b->mem + b->size,
       pagesize,
       PROT_READ | PROT_WRITE,
-      MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED,
+      MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED_NOREPLACE,
       -1,
       0
     );
