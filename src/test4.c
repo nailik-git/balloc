@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 int main() {
-  printf("testing multiple allocators: ");
+  printf("[INFO] testing multiple allocators: ");
 
   alloc b1 = {0};
   alloc b2 = {0};
