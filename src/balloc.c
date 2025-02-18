@@ -1,21 +1,31 @@
 #include "balloc.h"
 #include <assert.h>
 #include <unistd.h>
+#define _GNU_SOURCE
+#include <sys/mman.h>
 
 void balloc_init(alloc* b, size_t size) {
-  const size_t pagesize = getpagesize();
-  const size_t asize = (size + pagesize - 1) & (~pagesize - 1);
+  assert(size != 0 && "size needs to be greater than 0");
 
-  b->mem = malloc(asize);
-  assert(b->mem != NULL && "buy more RAM lol");
+  const size_t pagesize = getpagesize();
+  const size_t asize = (size + pagesize - 1) & ~(pagesize - 1);
+
+  b->mem = mmap(
+    (void*) 0x100000000000,
+    asize,
+    PROT_READ | PROT_WRITE,
+    MAP_PRIVATE | MAP_ANONYMOUS,
+    -1,
+    0
+  );
+  assert(b->mem != MAP_FAILED && "buy more RAM lol");
   b->size = asize;
   ((header*)b->mem)->idx = 0;
   ((header*)b->mem)->size = asize / 8 - 1;
 }
 
 void balloc_deinit(alloc b) {
-  free(b.mem);
-  b.size = 0;
+  munmap(b.mem, b.size);
 }
 
 void breset(alloc* b) {
@@ -24,7 +34,7 @@ void breset(alloc* b) {
 }
 
 void* balloc(alloc* b, size_t size) {
-  const size_t asize = (size + 7) & (~7);
+  const size_t asize = (size + 7) & ~7;
   const size_t div8 = asize / 8;
 
   const size_t pagesize = getpagesize();
@@ -53,16 +63,19 @@ void* balloc(alloc* b, size_t size) {
   } while(i);
 
   if(r == NULL) {
-    cur->size += pagesize;
 
-    void* tmp = realloc(b->mem, b->size + pagesize);
-    if(tmp == NULL) {
-      cur->size -= pagesize;
-      return r;
-    }
+    void* tmp = mmap(
+      b->mem + b->size,
+      pagesize,
+      PROT_READ | PROT_WRITE,
+      MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED,
+      -1,
+      0
+    );
+    if(tmp == MAP_FAILED) return r;
 
-    b->mem = tmp;
     b->size += pagesize;
+    cur->size += pagesize / 8;
 
     goto loop;
   }
