@@ -21,7 +21,7 @@ void balloc_init(alloc* b, size_t size) {
   );
 
   if(b->mem == MAP_FAILED) {
-    p = (void*) ((uint64_t) (p) << 1);
+    p = (void*) ((int64_t) (p) + 0x100000000);
     goto loop;
   }
 
