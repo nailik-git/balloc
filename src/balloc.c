@@ -4,8 +4,7 @@
 
 void balloc_init(alloc* b, size_t size) {
   const size_t pagesize = getpagesize();
-  const size_t mod = size % pagesize;
-  const size_t asize = size + (mod ? pagesize - mod : size ? 0 : pagesize);
+  const size_t asize = (size + pagesize - 1) & (~pagesize - 1);
 
   b->mem = malloc(asize);
   assert(b->mem != NULL && "buy more RAM lol");
@@ -25,9 +24,8 @@ void breset(alloc* b) {
 }
 
 void* balloc(alloc* b, size_t size) {
-  const size_t mod8 = size % 8;
-  const size_t new_size = size + (mod8 ? 8 - mod8 : 0);
-  const size_t div8 = new_size / 8;
+  const size_t asize = (size + 7) & (~7);
+  const size_t div8 = asize / 8;
 
   const size_t pagesize = getpagesize();
 
