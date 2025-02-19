@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <sys/mman.h>
 
-void balloc_init(alloc* b, size_t size) {
+void balloc_init(alloc* b, size_t size, alloc_type type) {
   assert(size != 0 && "size needs to be greater than 0");
 
   const size_t pagesize = getpagesize();
@@ -26,6 +26,8 @@ void balloc_init(alloc* b, size_t size) {
   }
 
   b->size = asize;
+  b->idx = 0;
+  b->type = type;
   ((header*)b->mem)->idx = 0;
   ((header*)b->mem)->size = asize / 8 - 1;
 }
@@ -36,7 +38,13 @@ void balloc_deinit(alloc b) {
 
 void breset(alloc* b) {
   header* h = (header*) (b->mem);
-  *h = (header) {.idx = 0, .size = b->size / 8 - 1};
+  switch (b->type) {
+    case BALLOC:
+      *h = (header) {.idx = 0, .size = b->size / 8 - 1};
+      break;
+    case BARENA:
+      b->idx = 0;
+  }
 }
 
 void* balloc(alloc* b, size_t size) {
@@ -49,47 +57,69 @@ void* balloc(alloc* b, size_t size) {
   size_t i = 0;
   header* cur;
 
-  loop:
-  do {
-    cur = (header*) (b->mem) + i;
+  switch (b->type) {
+    case BALLOC:
+      loop:
+      do {
+        cur = (header*) (b->mem) + i;
 
-    if(cur->size > div8) {
-      r = cur + 1;
-      header* new = cur + 1 + div8;
-      *new = (header) {.idx = cur->idx, .size = cur->size - 1 - div8};
-      *cur = (header) {.idx = i + 1 + div8, .size = 0};
+        if(cur->size > div8) {
+          r = cur + 1;
+          header* new = cur + 1 + div8;
+          *new = (header) {.idx = cur->idx, .size = cur->size - 1 - div8};
+          *cur = (header) {.idx = i + 1 + div8, .size = 0};
+          break;
+        } else if(cur->size == div8 && cur->idx) {
+          r = cur + 1;
+          cur->size = 0;
+          break;
+        }
+
+        i = cur->idx;
+      } while(i);
+
+      if(r == NULL) {
+
+        void* tmp = mmap(
+            b->mem + b->size,
+            pagesize,
+            PROT_READ | PROT_WRITE,
+            MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED_NOREPLACE,
+            -1,
+            0
+            );
+        if(tmp == MAP_FAILED) return r;
+
+        b->size += pagesize;
+        cur->size += pagesize / 8;
+
+        goto loop;
+      }
       break;
-    } else if(cur->size == div8 && cur->idx) {
-      r = cur + 1;
-      cur->size = 0;
+    case BARENA:
+      if(b->idx + asize > b->size) {
+        void* tmp = mmap(
+            b->mem + b->size,
+            pagesize,
+            PROT_READ | PROT_WRITE,
+            MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED_NOREPLACE,
+            -1,
+            0
+            );
+        if(tmp == MAP_FAILED) return r;
+
+        b->size += pagesize;
+      }
+      r = b->mem + b->idx;
+      b->idx += asize;
       break;
-    }
-
-    i = cur->idx;
-  } while(i);
-
-  if(r == NULL) {
-
-    void* tmp = mmap(
-      b->mem + b->size,
-      pagesize,
-      PROT_READ | PROT_WRITE,
-      MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED_NOREPLACE,
-      -1,
-      0
-    );
-    if(tmp == MAP_FAILED) return r;
-
-    b->size += pagesize;
-    cur->size += pagesize / 8;
-
-    goto loop;
   }
 
   return r;
 }
 
 void bfree(alloc b, void* item) {
+  assert(b.type == BALLOC && "allocator type not supported");
   header* prev = (header*) (b.mem);
 
   while((header*) (b.mem) + prev->idx + 1 != item) {

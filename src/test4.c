@@ -8,12 +8,12 @@ int main() {
   alloc b1 = {0};
   alloc b2 = {0};
 
-  balloc_init(&b1, sizeof(int64_t) * 1024 + 1);
+  balloc_init(&b1, sizeof(int64_t) * 1024 + 1, BALLOC);
   int64_t* a = balloc(&b1, sizeof(int64_t) * 1024);
   a[0] = 'a';
   a[1023] = 'd';
 
-  balloc_init(&b2, sizeof(int64_t) * 2048 + 1);
+  balloc_init(&b2, sizeof(int64_t) * 2048 + 1, BARENA);
   int64_t* b = balloc(&b2, sizeof(int64_t) * 2048);
   b[0] = 'b';
   b[2047] = 'e';

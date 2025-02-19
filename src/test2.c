@@ -12,7 +12,7 @@ int main() {
   printf("[INFO] testing general functionality: ");
 
   alloc b = {0};
-  balloc_init(&b, 1);
+  balloc_init(&b, 1, BALLOC);
 
   item* array[10];
   

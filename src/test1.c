@@ -5,7 +5,7 @@
 int main() {
   printf("[INFO] testing general functionality: ");
   alloc b = {0};
-  balloc_init(&b, 1);
+  balloc_init(&b, 1, BALLOC);
 
   char* p = balloc(&b, sizeof(char) * 12);
   sprintf(p, "hello world");
