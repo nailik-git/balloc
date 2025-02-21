@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <unistd.h>
 #include <sys/mman.h>
+#include <string.h>
 
 void balloc_init(alloc* b, size_t size, alloc_type type) {
   assert(size != 0 && "size needs to be greater than 0");
@@ -113,6 +114,35 @@ void* balloc(alloc* b, size_t size) {
       r = b->mem + b->idx;
       b->idx += asize;
       break;
+  }
+
+  return r;
+}
+
+void* brealloc(alloc* b, void* item, size_t size) {
+  assert(b->type == BALLOC && "allocator type not supported");
+  header* prev = (header*) (b->mem);
+
+  while((header*) (b->mem) + prev->idx + 1 != item) {
+    prev = (header*) (b->mem) + prev->idx;
+  }
+  header* this = (header*) (b->mem) + prev->idx;
+  header* next = (header*) (b->mem) + this->idx;
+
+  this->size = this->idx - prev->idx - 1;
+  const size_t nsize = this->size;
+
+  if(this->idx && next->size) {
+    this->idx = next->idx;
+    this->size += next->size + 1;
+  } if(prev->idx && prev->size) {
+    prev->idx = this->idx;
+    prev->size += this->size + 1;
+  }
+
+  void* r = balloc(b, size);
+  if(r != NULL && r != item) {
+    memcpy(r, item, nsize * 8);
   }
 
   return r;

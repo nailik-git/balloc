@@ -35,6 +35,10 @@ void breset(alloc* b);
 /// allocates an object of size and returns its address
 void* balloc(alloc* b, size_t size);
 
+/// realloc object with new size
+/// if the position in memory changes, old data is copied
+void* brealloc(alloc* b, void* item, size_t size);
+
 /// frees item in the memory pool (only works for type BALLOC)
 /// the pointer is not invalidated, nor is the address
 void bfree(alloc b, void* item);

@@ -5,7 +5,7 @@
 
 #define BUILD "build/"
 #define SRC "src/"
-#define NUM_TESTS 4
+#define NUM_TESTS 5
 
 int build_tests(Nob_Cmd cmd) {
   char input[64];
