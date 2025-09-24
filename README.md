@@ -1,4 +1,4 @@
-# balloc (big alloc cuz balls)
+# balloc (big alloc)
 i recently saw a video of sphaerophoria where they talked about their allocator "sphalloc" and i thought:
 "well that's a bit overcomplicated", so i made my own.
 
@@ -19,4 +19,4 @@ this will build the object file & the tests, to run the tests, simply run
 ```
 ./nob test
 ```
-(tests will be expanded)
+
