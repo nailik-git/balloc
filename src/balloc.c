@@ -98,7 +98,7 @@ void* balloc(alloc* b, size_t size) {
       }
       break;
     case BARENA:
-      if(b->idx + asize > b->size) {
+      while(b->idx + asize > b->size) {
         void* tmp = mmap(
             b->mem + b->size,
             pagesize,
